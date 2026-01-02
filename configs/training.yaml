@@ -1,0 +1,35 @@
+# Training configuration for multi-model / multi-policy pipelines (v6)
+#
+# Map each policy stage to a dataset directory (ImageFolder format):
+#   data_dir/{train,val,test}/{class}/image.png
+#
+# Guidance:
+# - stage1 screening uses normal vs leukemia dataset (e.g., C-NMC)
+# - stage2 family datasets are optional; you can start with only fallback stage2
+#
+policies:
+  two_stage:
+    stage1:
+      data_dir: data/processed/cnmc
+    stage2:
+      data_dir: data/processed/subtype  # ALL/AML/CLL/CML
+
+  two_stage_hierarchical:
+    stage1:
+      data_dir: data/processed/cnmc
+    stage2:
+      # Family-specific datasets (optional but recommended for hierarchical ensembles)
+      lymphoid:
+        data_dir: data/processed/subtype_lymphoid   # ALL/CLL
+      myeloid:
+        data_dir: data/processed/subtype_myeloid    # AML/CML
+      fallback:
+        data_dir: data/processed/subtype            # ALL/AML/CLL/CML
+
+  binary:
+    stage1:
+      data_dir: data/processed/cnmc
+
+  multiclass:
+    stage1:
+      data_dir: data/processed/multiclass   # normal/all/aml/cll/cml

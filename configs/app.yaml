@@ -1,0 +1,31 @@
+app:
+  name: bloodcancer-ai
+  modality: blood_smear
+  device: auto   # auto|cpu|cuda
+  class_names: ["normal", "leukemia"]
+
+inference:
+  img_size: 224
+  confidence_threshold: 0.70
+  topk: 2
+
+explain:
+  method: gradcam
+  target_layer: ""  # if empty, auto-pick last conv block when possible
+  overlay_alpha: 0.45
+
+rag:
+  enabled: true
+  knowledge_base_dir: knowledge_base
+  top_k: 4
+
+report:
+  template_path: configs/prompts/report_template.md
+  use_llm: false
+  llm_provider: "openai"   # openai|none
+  openai_model: "gpt-4o-mini"
+
+safety:
+  require_human_review_below_threshold: true
+
+# For multi-class types, see docs/BLOOD_CANCER_TYPES.md

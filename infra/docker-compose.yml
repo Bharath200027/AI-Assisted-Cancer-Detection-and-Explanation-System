@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    environment:
+      - APP_CONFIG=configs/app.yaml
+      - MODEL_CHECKPOINT=artifacts/models/best.pt
+      - MODEL_NAME=tf_efficientnetv2_s
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../artifacts:/app/artifacts
+      - ../configs:/app/configs
+      - ../knowledge_base:/app/knowledge_base
+
+
+  ui:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ..:/app
+    command: bash -lc "pip install -U pip && pip install -r requirements.txt && streamlit run ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0"
+    environment:
+      - API_URL=http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api

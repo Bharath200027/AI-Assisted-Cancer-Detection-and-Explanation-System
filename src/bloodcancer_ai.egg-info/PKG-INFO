@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: bloodcancer-ai
+Version: 0.6.0
+Summary: Agentic blood cancer detection + explanation (research)
+Requires-Python: >=3.10

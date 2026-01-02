@@ -1,0 +1,5 @@
+continual_learning:
+  auto_retrain: false
+  auto_retrain_min_new_labels: 50
+  auto_retrain_epochs: 3
+  auto_retrain_model_name: tf_efficientnetv2_s

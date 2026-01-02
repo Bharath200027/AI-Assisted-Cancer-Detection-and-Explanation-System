@@ -1,0 +1,135 @@
+# Model selection + routing policies (v6)
+#
+# Adds hierarchical ensembles:
+# - Stage-1: screening ensemble (normal vs leukemia)
+# - Stage-2: family-specific ensembles (lymphoid vs myeloid families) + optional fallback multiclass
+# - Best-model-per-class selection via registry metrics (per-class F1 from confusion matrix)
+#
+# Notes:
+# - Checkpoint paths are defaults. Train and place checkpoints accordingly or update paths.
+# - The router can override checkpoints using artifacts/model_registry.json (preferred).
+#
+default_policy: two_stage_hierarchical
+
+policies:
+  binary:
+    mode: single
+    stage1:
+      ensemble: false
+      selection_strategy: average
+      candidates:
+        - id: screening_effnet
+          model_name: tf_efficientnetv2_s
+          checkpoint: artifacts/models/screening/best.pt
+          class_names: ["normal", "leukemia"]
+
+  multiclass:
+    mode: single
+    stage1:
+      ensemble: true
+      selection_strategy: best_per_class
+      candidates:
+        - id: multiclass_effnet
+          model_name: tf_efficientnetv2_s
+          checkpoint: artifacts/models/multiclass/effnet_best.pt
+          class_names: ["normal", "all", "aml", "cll", "cml"]
+        - id: multiclass_vit
+          model_name: vit_base_patch16_224
+          checkpoint: artifacts/models/multiclass/vit_best.pt
+          class_names: ["normal", "all", "aml", "cll", "cml"]
+
+  two_stage:
+    mode: two_stage
+    stage1:
+      ensemble: true
+      selection_strategy: average
+      candidates:
+        - id: screening_effnet
+          model_name: tf_efficientnetv2_s
+          checkpoint: artifacts/models/screening/best.pt
+          class_names: ["normal", "leukemia"]
+        - id: screening_vit
+          model_name: vit_base_patch16_224
+          checkpoint: artifacts/models/screening/vit_best.pt
+          class_names: ["normal", "leukemia"]
+    stage2:
+      mode: flat
+      registry_stage: stage2
+      ensemble: true
+      selection_strategy: best_per_class
+      candidates:
+        - id: subtype_effnet
+          model_name: tf_efficientnetv2_s
+          checkpoint: artifacts/models/subtype/effnet_best.pt
+          class_names: ["all", "aml", "cll", "cml"]
+        - id: subtype_vit
+          model_name: vit_base_patch16_224
+          checkpoint: artifacts/models/subtype/vit_best.pt
+          class_names: ["all", "aml", "cll", "cml"]
+
+  two_stage_hierarchical:
+    mode: two_stage
+    stage1:
+      ensemble: true
+      selection_strategy: best_per_class
+      candidates:
+        - id: screening_effnet
+          model_name: tf_efficientnetv2_s
+          checkpoint: artifacts/models/screening/best.pt
+          class_names: ["normal", "leukemia"]
+        - id: screening_vit
+          model_name: vit_base_patch16_224
+          checkpoint: artifacts/models/screening/vit_best.pt
+          class_names: ["normal", "leukemia"]
+
+    stage2:
+      # Hierarchical ensemble: run family-specific subtype models and merge probs.
+      mode: hierarchical
+      global_class_names: ["all", "aml", "cll", "cml"]
+      selection_strategy: best_per_class
+
+      families:
+        lymphoid:
+          registry_stage: stage2_lymphoid
+          class_names: ["all", "cll"]
+          ensemble: true
+          selection_strategy: best_per_class
+          candidates:
+            - id: lymphoid_effnet
+              model_name: tf_efficientnetv2_s
+              checkpoint: artifacts/models/subtype/lymphoid_effnet_best.pt
+              class_names: ["all", "cll"]
+            - id: lymphoid_vit
+              model_name: vit_base_patch16_224
+              checkpoint: artifacts/models/subtype/lymphoid_vit_best.pt
+              class_names: ["all", "cll"]
+
+        myeloid:
+          registry_stage: stage2_myeloid
+          class_names: ["aml", "cml"]
+          ensemble: true
+          selection_strategy: best_per_class
+          candidates:
+            - id: myeloid_effnet
+              model_name: tf_efficientnetv2_s
+              checkpoint: artifacts/models/subtype/myeloid_effnet_best.pt
+              class_names: ["aml", "cml"]
+            - id: myeloid_vit
+              model_name: vit_base_patch16_224
+              checkpoint: artifacts/models/subtype/myeloid_vit_best.pt
+              class_names: ["aml", "cml"]
+
+      # Optional fallback: if family models aren't available, run a multiclass subtype ensemble
+      fallback:
+        registry_stage: stage2
+        ensemble: true
+        selection_strategy: best_per_class
+        candidates:
+          - id: subtype_effnet
+            model_name: tf_efficientnetv2_s
+            checkpoint: artifacts/models/subtype/effnet_best.pt
+            class_names: ["all", "aml", "cll", "cml"]
+          - id: subtype_vit
+            model_name: vit_base_patch16_224
+            checkpoint: artifacts/models/subtype/vit_best.pt
+            class_names: ["all", "aml", "cll", "cml"]
